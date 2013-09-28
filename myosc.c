@@ -1,3 +1,5 @@
+#include "pattern.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -89,8 +91,8 @@ int osc_unpack_message(const osc_packet *packet,
     const char *address, const char *types, ...) {
   int nleft = packet->size;
   char *p = packet->data;
-  if (strcmp(p, address)) return -1;  // TODO: Implement matching.
-  int n = strlen(address) + 1;
+  if (!pattern_matches(p, address)) return -1;
+  int n = strlen(p) + 1;
   p += n;
   nleft -= n;
   osc_align(&p, &nleft);
@@ -144,14 +146,7 @@ int main(int argc, char **argv) {
   osc_packet packet;
   packet.data = malloc(N);
   char v[3] = { 65, 66, 0 };
-  osc_pack_message(&packet, N, "/foo", "iisff",
-      1000, -1, "hello", 1.234, 5.678);
-  int k;
-  for (k = 0; k < packet.size; ++k) {
-    printf("%c ", *((char *) packet.data + k));
-  }
-  printf("\n");
-  int r1 = osc_pack_message(&packet, N, "/foo/bar", "ibsfi",
+  int r1 = osc_pack_message(&packet, N, "/*/bar", "ibsfi",
       4, 3, v, "abcde", 2.5, -3);
   int i = 0, j = 0, nb = 0;
   float f;
