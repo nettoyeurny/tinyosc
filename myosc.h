@@ -19,5 +19,7 @@ int osc_make_bundle(osc_packet *bundle, int capacity, int64_t time);
 int osc_add_packet_to_bundle(
     osc_packet *bundle, int capacity, osc_packet *packet);
 
+int osc_time_from_bundle(osc_packet *bundle, int64_t *time);
+
 int osc_next_packet_from_bundle(osc_packet *bundle, osc_packet *current);
 

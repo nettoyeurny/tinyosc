@@ -1,3 +1,5 @@
+// TODO: Error checking and tests.
+
 #include "myosc.h"
 #include "pattern.h"
 
@@ -166,12 +168,18 @@ int osc_add_packet_to_bundle(
   return 0;
 }
 
+int osc_time_from_bundle(osc_packet *bundle, int64_t *time) {
+  if (!osc_is_bundle(bundle)) return -1;
+  *time = *(int64_t *) (bundle->data + 8);  // TODO: Consider endianness.
+  return 0;
+}
+
 int osc_next_packet_from_bundle(
     osc_packet *bundle, osc_packet *current) {
   if (!osc_is_bundle(bundle)) return -1;
   int bs = ntohl(bundle->size);
   char *p = bundle->data;
-  if (bs <= 16) return -1;
+  if (bs <= 16) return -2;
   if (!current->data) {
     current->size = *(int *) (p + 16);
     current->data = p + 20;
