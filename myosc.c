@@ -138,6 +138,10 @@ int osc_unpack_message(const osc_packet *packet,
   return 0;
 }
 
+int osc_is_bundle(osc_packet *packet) {
+  return *packet->data == '#';
+}
+
 int osc_make_bundle(osc_packet *bundle, int capacity, int64_t time) {
   if (capacity < 16) return -1;
   char *p = bundle->data;
@@ -149,6 +153,7 @@ int osc_make_bundle(osc_packet *bundle, int capacity, int64_t time) {
 
 int osc_add_packet_to_bundle(
     osc_packet *bundle, int capacity, osc_packet *packet) {
+  if (!osc_is_bundle(bundle)) return -1;
   int bs = ntohl(bundle->size);
   int ps = ntohl(packet->size);
   if (capacity - bs < ps + 4) return -1;
@@ -161,20 +166,23 @@ int osc_add_packet_to_bundle(
   return 0;
 }
 
-osc_packet *osc_next_packet_from_bundle(
+int osc_next_packet_from_bundle(
     osc_packet *bundle, osc_packet *current) {
+  if (!osc_is_bundle(bundle)) return -1;
   int bs = ntohl(bundle->size);
   char *p = bundle->data;
-  if (bs <= 16) return NULL;
-  if (!current) return (osc_packet *) (p + 16);
+  if (bs <= 16) return -1;
+  if (!current->data) {
+    current->size = *(int *) (p + 16);
+    current->data = p + 20;
+    return 0;
+  }
   int ps = ntohl(current->size);
   char *q = current->data;
   q += ps;
-  if (q - p >= bs) return NULL;
-  return current;
-}
-
-int osc_is_bundle(osc_packet *packet) {
-  return *packet->data == '#';
+  if (q - p >= bs) return -1;
+  current->size = *(int *) q;
+  current->data = q + 4;
+  return 0;
 }
 
