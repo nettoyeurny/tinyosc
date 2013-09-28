@@ -22,14 +22,6 @@ static int osc_append_int(char **p, int i, int *n) {
   return 0;
 }
 
-static int osc_append_float(char **p, float f, int *n) {
-  if (*n < 4) return -1;
-  *(float *)*p = f;  // TODO: Consider endianness.
-  *p += 4;
-  *n -= 4;
-  return 0;
-}
-
 static int osc_append_string(char **p, const char *s, int *n) {
   int len = strnlen(s, *n) + 1;
   if (len > *n) return -1;
@@ -75,7 +67,7 @@ int osc_pack_message(osc_packet *packet, int capacity,
         break;
       case 'f':  // float32
         fv = (float) va_arg(ap, double);
-        if (osc_append_float(&p, fv, &nleft)) return -1;
+        if (osc_append_int(&p, *(int *)&fv, &nleft)) return -1;
         break;
       case 's':  // OSC-string
         sv = va_arg(ap, const char *);
@@ -117,14 +109,9 @@ int osc_unpack_message(const osc_packet *packet,
   for (t = types; *t; ++t) {
     switch (*t) {
       case 'i':  // int32
+      case 'f':  // float32
         ip = va_arg(ap, int32_t *);
         *ip = ntohl(*(int32_t *)p);
-        p += 4;
-        nleft -= 4;
-        break;
-      case 'f':  // float32
-        fp = va_arg(ap, float *);
-        *fp = *(float *)p;  // TODO: Consider endianness.
         p += 4;
         nleft -= 4;
         break;
@@ -157,13 +144,15 @@ int main(int argc, char **argv) {
   osc_packet packet;
   packet.data = malloc(N);
   char v[3] = { 65, 66, 0 };
-  int r1 = osc_pack_message(&packet, N, "/foo/bar", "ibsfi",
-      4, 3, v, "abcde", 2.5, -3);
+  osc_pack_message(&packet, N, "/foo", "iisff",
+      1000, -1, "hello", 1.234, 5.678);
   int k;
   for (k = 0; k < packet.size; ++k) {
-    printf("%x ", *((char *) packet.data + k));
+    printf("%c ", *((char *) packet.data + k));
   }
   printf("\n");
+  int r1 = osc_pack_message(&packet, N, "/foo/bar", "ibsfi",
+      4, 3, v, "abcde", 2.5, -3);
   int i = 0, j = 0, nb = 0;
   float f;
   char s[16];
