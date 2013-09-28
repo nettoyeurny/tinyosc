@@ -108,6 +108,7 @@ int osc_unpack_message(const osc_packet *packet,
   osc_align(&p, &nleft);
   const char *t;
   int32_t *ip;
+  float *fp;
   va_list ap;
   va_start(ap, types);
   for (t = types; *t; ++t) {
@@ -119,6 +120,10 @@ int osc_unpack_message(const osc_packet *packet,
         nleft -= 4;
         break;
       case 'f':  // float32
+        fp = va_arg(ap, float *);
+        *fp = *(float *)p;  // TODO: Consider endianness.
+        p += 4;
+        nleft -= 4;
         break;
       case 's':  // OSC-string
         break;
@@ -135,10 +140,11 @@ int main(int argc, char **argv) {
   int N = 256;
   osc_packet packet;
   packet.data = malloc(N);
-  int r1 = osc_pack_message(&packet, N, "/foo/bar", "ii", 4, -3);
+  int r1 = osc_pack_message(&packet, N, "/foo/bar", "ifi", 4, 2.5, -3);
   int i = 0, j = 0;
-  int r2 = osc_unpack_message(&packet, "/foo/bar", "ii", &i, &j);
-  printf("%d %d %d %d\n", r1, r2, i, j);
+  float f;
+  int r2 = osc_unpack_message(&packet, "/foo/bar", "ifi", &i, &f, &j);
+  printf("%d %d %d %f %d\n", r1, r2, i, f, j);
   free(packet.data);
   return 0;
 }
