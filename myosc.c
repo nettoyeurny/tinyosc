@@ -9,11 +9,10 @@
 #include <string.h>
 
 static uint64_t htonll(uint64_t m) {
-  int32_t *p = (int32_t *) &m;
   uint64_t n;
-  int32_t *q = (int32_t *) &n;
-  *q = (int32_t) htonl((int32_t) (m >> 32));
-  *(q + 1) = htonl((int32_t) m);
+  int32_t *p = (int32_t *) &n;
+  *p = htonl((int32_t) (m >> 32));
+  *(p + 1) = htonl((int32_t) m);
   return n;
 }
 
