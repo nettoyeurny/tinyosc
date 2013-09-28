@@ -148,7 +148,7 @@ int osc_make_bundle(osc_packet *bundle, int capacity, int64_t time) {
   if (capacity < 16) return -1;
   char *p = bundle->data;
   strcpy(p, "#bundle");
-  memcpy(p + 8, &time, 8);  // TODO: Consider endianness.
+  *(int64_t *) (p + 8) = time;  // TODO: Consider endianness.
   bundle->size = htonl(16);
   return 0;
 }
