@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
       4, 3, v, "abcde", 2.5, -3);
   int k;
   for (k = 0; k < packet.size; ++k) {
-    printf("%d ", *((char *) packet.data + k));
+    printf("%x ", *((char *) packet.data + k));
   }
   printf("\n");
   int i = 0, j = 0, nb = 0;
