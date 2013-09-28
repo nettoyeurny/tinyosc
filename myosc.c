@@ -16,9 +16,9 @@ void osc_align(char **p, int *n) {
   *n -= d;
 }
 
-static int osc_append_int(char **p, int i, int *n) {
+static int osc_append_int(char **p, int32_t i, int *n) {
   if (*n < 4) return -1;
-  *(int *)*p = htonl(i);
+  *(int32_t *)*p = htonl(i);
   *p += 4;
   *n -= 4;
   return 0;
@@ -54,7 +54,7 @@ int osc_pack_message(osc_packet *packet, int capacity,
   *p++ = ',';
   --nleft;
   if (osc_append_string(&p, types, &nleft)) return -1;
-  int iv;
+  int32_t iv;
   float fv;
   const char *sv;
   const void *vv;
@@ -69,6 +69,7 @@ int osc_pack_message(osc_packet *packet, int capacity,
         break;
       case 'f':  // float32
         fv = (float) va_arg(ap, double);
+        // Float-as-int aliasing FTW!
         if (osc_append_int(&p, *(int *)&fv, &nleft)) return -1;
         break;
       case 's':  // OSC-string
