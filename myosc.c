@@ -82,13 +82,13 @@ int osc_pack_message(osc_packet *packet, int capacity,
     }
   }
   va_end(ap);
-  packet->size = htonl(capacity - nleft);
+  packet->size = capacity - nleft;
   return 0;
 }
 
 int osc_unpack_message(const osc_packet *packet,
     const char *address, const char *types, ...) {
-  int nleft = ntohl(packet->size);
+  int nleft = packet->size;
   char *p = packet->data;
   if (!pattern_matches(p, address)) return -1;
   int n = strlen(p) + 1;
@@ -149,22 +149,22 @@ int osc_make_bundle(osc_packet *bundle, int capacity, int64_t time) {
   char *p = bundle->data;
   strcpy(p, "#bundle");
   *(int64_t *) (p + 8) = time;  // TODO: Consider endianness.
-  bundle->size = htonl(16);
+  bundle->size = 16;
   return 0;
 }
 
 int osc_add_packet_to_bundle(
     osc_packet *bundle, int capacity, osc_packet *packet) {
   if (!osc_is_bundle(bundle)) return -1;
-  int bs = ntohl(bundle->size);
-  int ps = ntohl(packet->size);
+  int bs = bundle->size;
+  int ps = packet->size;
   if (capacity - bs < ps + 4) return -1;
   char *p = bundle->data;
   p += bs;
-  *(int *)p = packet->size;
+  *(int *)p = htonl(packet->size);
   p += 4;
   memcpy(p, packet->data, ps);
-  bundle->size = htonl(bs + ps + 4);
+  bundle->size = bs + ps + 4;
   return 0;
 }
 
@@ -177,19 +177,19 @@ int osc_time_from_bundle(osc_packet *bundle, int64_t *time) {
 int osc_next_packet_from_bundle(
     osc_packet *bundle, osc_packet *current) {
   if (!osc_is_bundle(bundle)) return -1;
-  int bs = ntohl(bundle->size);
+  int bs = bundle->size;
   char *p = bundle->data;
   if (bs <= 16) return -2;
   if (!current->data) {
-    current->size = *(int *) (p + 16);
+    current->size = ntohl(*(int32_t *) (p + 16));
     current->data = p + 20;
     return 0;
   }
-  int ps = ntohl(current->size);
+  int ps = current->size;
   char *q = current->data;
   q += ps;
   if (q - p >= bs) return -1;
-  current->size = *(int *) q;
+  current->size = ntohl(*(int32_t *) q);
   current->data = q + 4;
   return 0;
 }

@@ -3,7 +3,7 @@
 #include <stdarg.h>
 
 typedef struct {
-  int32_t size;  // Bigendian.
+  int32_t size;
   char *data;
 } osc_packet;
 
