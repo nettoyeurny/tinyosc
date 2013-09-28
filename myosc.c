@@ -8,6 +8,17 @@
 #include <stdarg.h>
 #include <string.h>
 
+static uint64_t htonll(uint64_t m) {
+  int32_t *p = (int32_t *) &m;
+  uint64_t n;
+  int32_t *q = (int32_t *) &n;
+  *q = (int32_t) htonl((int32_t) (m >> 32));
+  *(q + 1) = htonl((int32_t) m);
+  return n;
+}
+
+#define ntohll(x) htonll(x)
+
 static void osc_align(char **p, int *n) {
   int d = *n & 0x03;
   *p += d;
@@ -144,11 +155,11 @@ int osc_is_bundle(osc_packet *packet) {
   return *packet->data == '#';
 }
 
-int osc_make_bundle(osc_packet *bundle, int capacity, int64_t time) {
+int osc_make_bundle(osc_packet *bundle, int capacity, uint64_t time) {
   if (capacity < 16) return -1;
   char *p = bundle->data;
   strcpy(p, "#bundle");
-  *(int64_t *) (p + 8) = time;  // TODO: Consider endianness.
+  *(uint64_t *) (p + 8) = htonll(time);
   bundle->size = 16;
   return 0;
 }
@@ -168,9 +179,9 @@ int osc_add_packet_to_bundle(
   return 0;
 }
 
-int osc_time_from_bundle(osc_packet *bundle, int64_t *time) {
+int osc_time_from_bundle(osc_packet *bundle, uint64_t *time) {
   if (!osc_is_bundle(bundle)) return -1;
-  *time = *(int64_t *) (bundle->data + 8);  // TODO: Consider endianness.
+  *time = ntohll(*(uint64_t *) (bundle->data + 8));
   return 0;
 }
 
