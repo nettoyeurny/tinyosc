@@ -1,3 +1,4 @@
+#include "myosc.h"
 #include "pattern.h"
 
 #include <stdio.h>
@@ -5,12 +6,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-typedef struct {
-  int32_t size;
-  void *data;
-} osc_packet;
-
-void osc_align(char **p, int *n) {
+static void osc_align(char **p, int *n) {
   int d = *n & 0x03;
   *p += d;
   *n -= d;
@@ -48,7 +44,7 @@ int osc_pack_message(osc_packet *packet, int capacity,
     const char *address, const char *types, ...) {
   if (capacity & 0x03) return -2;
   int nleft = capacity;
-  char *p = (char *) packet->data;
+  char *p = packet->data;
   if (osc_append_string(&p, address, &nleft)) return -1;
   if (nleft <= 0) return -1;
   *p++ = ',';
@@ -84,13 +80,13 @@ int osc_pack_message(osc_packet *packet, int capacity,
     }
   }
   va_end(ap);
-  packet->size = capacity - nleft;
+  packet->size = htonl(capacity - nleft);
   return 0;
 }
 
 int osc_unpack_message(const osc_packet *packet,
     const char *address, const char *types, ...) {
-  int nleft = packet->size;
+  int nleft = ntohl(packet->size);
   char *p = packet->data;
   if (!pattern_matches(p, address)) return -1;
   int n = strlen(p) + 1;
@@ -142,20 +138,43 @@ int osc_unpack_message(const osc_packet *packet,
   return 0;
 }
 
-int main(int argc, char **argv) {
-  int N = 256;
-  osc_packet packet;
-  packet.data = malloc(N);
-  char v[3] = { 65, 66, 0 };
-  int r1 = osc_pack_message(&packet, N, "/*/bar", "ibsfi",
-      4, 3, v, "abcde", 2.5, -3);
-  int i = 0, j = 0, nb = 0;
-  float f;
-  char s[16];
-  char b[16];
-  int r2 = osc_unpack_message(&packet, "/foo/bar", "ibsfi",
-      &i, &nb, b, s, &f, &j);
-  printf("%d %d %d %d %s %s %f %d\n", r1, r2, i, nb, b, s, f, j);
-  free(packet.data);
+int osc_make_bundle(osc_packet *bundle, int capacity, int64_t time) {
+  if (capacity < 16) return -1;
+  char *p = bundle->data;
+  strcpy(p, "#bundle");
+  memcpy(p + 8, &time, 8);  // TODO: Consider endianness.
+  bundle->size = htonl(16);
   return 0;
 }
+
+int osc_add_packet_to_bundle(
+    osc_packet *bundle, int capacity, osc_packet *packet) {
+  int bs = ntohl(bundle->size);
+  int ps = ntohl(packet->size);
+  if (capacity - bs < ps + 4) return -1;
+  char *p = bundle->data;
+  p += bs;
+  *(int *)p = packet->size;
+  p += 4;
+  memcpy(p, packet->data, ps);
+  bundle->size = htonl(bs + ps + 4);
+  return 0;
+}
+
+osc_packet *osc_next_packet_from_bundle(
+    osc_packet *bundle, osc_packet *current) {
+  int bs = ntohl(bundle->size);
+  char *p = bundle->data;
+  if (bs <= 16) return NULL;
+  if (!current) return (osc_packet *) (p + 16);
+  int ps = ntohl(current->size);
+  char *q = current->data;
+  q += ps;
+  if (q - p >= bs) return NULL;
+  return current;
+}
+
+int osc_is_bundle(osc_packet *packet) {
+  return *packet->data == '#';
+}
+
