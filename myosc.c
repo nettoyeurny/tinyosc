@@ -40,10 +40,10 @@ static int osc_append_string(char **p, const char *s, int *n) {
   return 0;
 }
 
-static int osc_append_blob(char **p, int s, const char *b, int *n) {
+static int osc_append_blob(char **p, int s, const void *b, int *n) {
   if (*n < s + 4) return -1;
   *(int *)*p = htonl(s);
-  memcpy(p + 4, b, s);
+  memcpy(*p + 4, b, s);
   *p += s + 4;
   *n -= s + 4;
   osc_align(p, n);
@@ -63,6 +63,7 @@ int osc_pack_message(osc_packet *packet, int capacity,
   int iv;
   float fv;
   const char *sv;
+  const void *vv;
   const char *t;
   va_list ap;
   va_start(ap, types);
@@ -82,8 +83,8 @@ int osc_pack_message(osc_packet *packet, int capacity,
         break;
       case 'b':  // OSC-blob
         iv = va_arg(ap, int32_t);
-        sv = va_arg(ap, const char *);
-        if (osc_append_blob(&p, iv, sv, &nleft)) return -1;
+        vv = va_arg(ap, const void *);
+        if (osc_append_blob(&p, iv, vv, &nleft)) return -1;
         break;
     }
   }
@@ -109,6 +110,8 @@ int osc_unpack_message(const osc_packet *packet,
   const char *t;
   int32_t *ip;
   float *fp;
+  char *sp;
+  void *vp;
   va_list ap;
   va_start(ap, types);
   for (t = types; *t; ++t) {
@@ -126,13 +129,26 @@ int osc_unpack_message(const osc_packet *packet,
         nleft -= 4;
         break;
       case 's':  // OSC-string
+        sp = va_arg(ap, char *);
+        strcpy(sp, p);
+        n = strlen(sp) + 1;
+        p += n;
+        nleft -= n;
+        osc_align(&p, &nleft);
         break;
       case 'b':  // OSC-blob
+        ip = va_arg(ap, int32_t *);
+        *ip = ntohl(*(int32_t *)p);
+        vp = va_arg(ap, void *);
+        memcpy(vp, p + 4, *ip);
+        p += 4 + *ip;
+        nleft -= 4 + *ip;
+        osc_align(&p, &nleft);
         break;
     }
   }
   va_end(ap);
-  if (nleft > 0) return -3;
+  if (nleft != 0) return -3;
   return 0;
 }
 
@@ -140,12 +156,21 @@ int main(int argc, char **argv) {
   int N = 256;
   osc_packet packet;
   packet.data = malloc(N);
-  int r1 = osc_pack_message(&packet, N, "/foo/bar", "ifi", 4, 2.5, -3);
-  int i = 0, j = 0;
+  char v[3] = { 65, 66, 0 };
+  int r1 = osc_pack_message(&packet, N, "/foo/bar", "ibsfi",
+      4, 3, v, "abcde", 2.5, -3);
+  int k;
+  for (k = 0; k < packet.size; ++k) {
+    printf("%d ", *((char *) packet.data + k));
+  }
+  printf("\n");
+  int i = 0, j = 0, nb = 0;
   float f;
-  int r2 = osc_unpack_message(&packet, "/foo/bar", "ifi", &i, &f, &j);
-  printf("%d %d %d %f %d\n", r1, r2, i, f, j);
+  char s[16];
+  char b[16];
+  int r2 = osc_unpack_message(&packet, "/foo/bar", "ibsfi",
+      &i, &nb, b, s, &f, &j);
+  printf("%d %d %d %d %s %s %f %d\n", r1, r2, i, nb, b, s, f, j);
   free(packet.data);
   return 0;
 }
-
