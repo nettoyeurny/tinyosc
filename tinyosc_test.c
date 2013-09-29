@@ -309,6 +309,26 @@ static int test_unpack_two_args() {
   return 0;
 }
 
+static int test_make_bundle() {
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo", "") == 0);
+  EXPECT(!osc_is_bundle(&packet));
+  EXPECT(osc_make_bundle(&packet, 4, 1) != 0);
+  EXPECT(osc_make_bundle(&packet, 16, 0x0102030405060708) == 0);
+  EXPECT(osc_is_bundle(&packet));
+  EXPECT(packet.size == 16);
+  char ref[] = {
+    '#', 'b', 'u', 'n', 'd', 'l', 'e', 0,
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
+  };
+  EXPECT(buffers_match(ref, packet.data, packet.size));
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
   TEST(test_pack_errors);
   TEST(test_pack_capacity);
@@ -318,4 +338,5 @@ int main(int argc, char **argv) {
   TEST(test_unpack_match);
   TEST(test_unpack_one_arg);
   TEST(test_unpack_two_args);
+  TEST(test_make_bundle);
 }
