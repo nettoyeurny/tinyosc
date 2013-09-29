@@ -164,9 +164,55 @@ static int test_pack_one_arg() {
   return 0;
 }
 
+static int test_pack_two_args() {
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/ab", "ii", 0x01020304, -2) == 0);
+  EXPECT(packet.size == 16);
+  char ref0[] = {
+    '/', 'a', 'b', 0, ',', 'i', 'i', 0,
+    0x01, 0x02, 0x03, 0x04,
+    0xff, 0xff, 0xff, 0xfe
+  };
+  EXPECT(buffers_match(ref0, packet.data, packet.size));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/ab", "fi", 440.0, -2) == 0);
+  EXPECT(packet.size == 16);
+  char ref1[] = {
+    '/', 'a', 'b', 0, ',', 'f', 'i', 0,
+    0x43, 0xdc, 0x00, 0x00,
+    0xff, 0xff, 0xff, 0xfe
+  };
+  EXPECT(buffers_match(ref1, packet.data, packet.size));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/ab", "si", "x", -2) == 0);
+  EXPECT(packet.size == 16);
+  char ref2[] = {
+    '/', 'a', 'b', 0, ',', 's', 'i', 0,
+    'x', 0, 0, 0,
+    0xff, 0xff, 0xff, 0xfe
+  };
+  EXPECT(buffers_match(ref2, packet.data, packet.size));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/ab", "bi", 2, "abc", -2) == 0);
+  EXPECT(packet.size == 20);
+  char ref3[] = {
+    '/', 'a', 'b', 0, ',', 'b', 'i', 0,
+    0x00, 0x00, 0x00, 0x02,
+    'a', 'b', 0, 0,
+    0xff, 0xff, 0xff, 0xfe
+  };
+  EXPECT(buffers_match(ref3, packet.data, packet.size));
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
   TEST(test_pack_errors);
   TEST(test_pack_capacity);
   TEST(test_pack_no_args);
   TEST(test_pack_one_arg);
+  TEST(test_pack_two_args);
 }
