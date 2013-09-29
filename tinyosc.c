@@ -1,5 +1,3 @@
-// TODO: Error checking and tests.
-
 #include "tinyosc.h"
 #include "pattern.h"
 
@@ -32,40 +30,34 @@ static int osc_append_int(char **p, int32_t i, int *n) {
   return 0;
 }
 
-static int osc_append_string(char **p, const char *s, int *n) {
-  int len = strnlen(s, *n) + 1;
-  if (len > *n) return -1;
-  strcpy(*p, s);
-  *p += len;
-  *n -= len;
+static int osc_append_bytes(char **p, int s, const char *b, int *n) {
+  if (*n < s) return -1;
+  memcpy(*p, b, s);
+  *p += s;
+  *n -= s;
   osc_align(p, n);
   return 0;
 }
 
-static int osc_append_blob(char **p, int s, const void *b, int *n) {
-  if (*n < s + 4) return -1;
-  *(int *)*p = htonl(s);
-  memcpy(*p + 4, b, s);
-  *p += s + 4;
-  *n -= s + 4;
-  osc_align(p, n);
+static int osc_append_char(char **p, char c, int *n) {
+  if (*n < 1) return -1;
+  **p = c;
+  *p += 1;
+  *n -= 1;
   return 0;
 }
 
 int osc_pack_message(osc_packet *packet, int capacity,
     const char *address, const char *types, ...) {
-  if (capacity & 0x03) return -2;
+  if (capacity & 0x03) return -1;
   int nleft = capacity;
   char *p = packet->data;
-  if (osc_append_string(&p, address, &nleft)) return -1;
-  if (nleft <= 0) return -1;
-  *p++ = ',';
-  --nleft;
-  if (osc_append_string(&p, types, &nleft)) return -1;
+  if (osc_append_bytes(&p, strlen(address) + 1, address, &nleft)) return -1;
+  if (osc_append_char(&p, ',', &nleft)) return -1;
+  if (osc_append_bytes(&p, strlen(types) + 1, types, &nleft)) return -1;
   int32_t iv;
   float fv;
   const char *sv;
-  const void *vv;
   const char *t;
   va_list ap;
   va_start(ap, types);
@@ -83,15 +75,17 @@ int osc_pack_message(osc_packet *packet, int capacity,
         break;
       case 's':  // OSC-string
         sv = va_arg(ap, const char *);
-        if (osc_append_string(&p, sv, &nleft)) return -1;
+        iv = strlen(sv) + 1;  // Count terminating \0 character.
+        if (osc_append_bytes(&p, iv, sv, &nleft)) return -1;
         break;
       case 'b':  // OSC-blob
         iv = va_arg(ap, int32_t);
-        vv = va_arg(ap, const void *);
-        if (osc_append_blob(&p, iv, vv, &nleft)) return -1;
+        sv = va_arg(ap, const char *);
+        if (osc_append_int(&p, iv, &nleft)) return -1;
+        if (osc_append_bytes(&p, iv, sv, &nleft)) return -1;
         break;
       default:
-        return -2;  // Unknown or unsupported data type.
+        return -1;  // Unknown or unsupported data type.
     }
   }
   va_end(ap);
@@ -102,14 +96,17 @@ int osc_pack_message(osc_packet *packet, int capacity,
 int osc_unpack_message(const osc_packet *packet,
     const char *address, const char *types, ...) {
   int nleft = packet->size;
+  if (nleft & 0x03) return -1;
   char *p = packet->data;
-  if (!pattern_matches(p, address)) return -1;
   int n = strlen(p) + 1;
+  if (nleft < n) return -1;
+  if (!pattern_matches(p, address)) return -1;
   p += n;
   nleft -= n;
   osc_align(&p, &nleft);
-  if (strcmp(p + 1, types)) return -2;
   n = strlen(types) + 2;
+  if (nleft < n) return -1;
+  if (strcmp(p + 1, types)) return -1;
   p += n;
   nleft -= n;
   osc_align(&p, &nleft);
@@ -125,39 +122,45 @@ int osc_unpack_message(const osc_packet *packet,
       case 'i':  // int32
       case 'm':  // 4-byte MIDI message.
       case 'f':  // float32
+        if (nleft < 4) return -1;
         ip = va_arg(ap, int32_t *);
         *ip = ntohl(*(int32_t *)p);
         p += 4;
         nleft -= 4;
         break;
       case 's':  // OSC-string
+        n = strlen(p) + 1;
+        if (nleft < n) return -1;
         sp = va_arg(ap, char *);
         strcpy(sp, p);
-        n = strlen(sp) + 1;
         p += n;
         nleft -= n;
         osc_align(&p, &nleft);
         break;
       case 'b':  // OSC-blob
         ip = va_arg(ap, int32_t *);
+        if (nleft < 4) return -1;
         *ip = ntohl(*(int32_t *)p);
+        p += 4;
+        nleft -= 4;
         vp = va_arg(ap, void *);
-        memcpy(vp, p + 4, *ip);
-        p += 4 + *ip;
-        nleft -= 4 + *ip;
+        if (nleft < *ip) return -1;
+        memcpy(vp, p, *ip);
+        p += *ip;
+        nleft -= *ip;
         osc_align(&p, &nleft);
         break;
       default:
-        return -3;  // Unknown or unsupported data type.
+        return -1;  // Unknown or unsupported data type.
     }
   }
   va_end(ap);
-  if (nleft != 0) return -4;
+  if (nleft != 0) return -1;
   return 0;
 }
 
 int osc_is_bundle(osc_packet *packet) {
-  return *packet->data == '#';
+  return !strcmp(packet->data, "#bundle");
 }
 
 int osc_make_bundle(osc_packet *bundle, int capacity, uint64_t time) {
@@ -195,7 +198,7 @@ int osc_next_packet_from_bundle(
   if (!osc_is_bundle(bundle)) return -1;
   int bs = bundle->size;
   char *p = bundle->data;
-  if (bs <= 16) return -2;
+  if (bs <= 16) return -1;
   if (!current->data) {
     current->size = ntohl(*(int32_t *) (p + 16));
     current->data = p + 20;
