@@ -245,13 +245,21 @@ static int test_unpack_one_arg() {
   EXPECT(osc_unpack_message(&packet, "/foo/bar", "f", &f) == 0);
   EXPECT(f == -0.5);
 
-  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "s", "bla") == 0);
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "s", "") == 0);
   char s[16];
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "s", s) == 0);
+  EXPECT(!strcmp("", s));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "s", "bla") == 0);
   EXPECT(osc_unpack_message(&packet, "/foo/bar", "s", s) == 0);
   EXPECT(!strcmp("bla", s));
 
-  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "b", 2, "xy") == 0);
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "b", 0, NULL) == 0);
   int n;
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "b", &n, s) == 0);
+  EXPECT(n == 0);
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "b", 2, "xy") == 0);
   EXPECT(osc_unpack_message(&packet, "/foo/bar", "b", &n, s) == 0);
   EXPECT(n == 2);
   EXPECT(buffers_match("xy", s, n));
