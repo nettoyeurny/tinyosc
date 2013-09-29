@@ -274,6 +274,41 @@ static int test_unpack_one_arg() {
   return 0;
 }
 
+static int test_unpack_two_args() {
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "ii", 42, -3) == 0);
+  int i, j;
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "i", NULL) != 0);
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "if", NULL, NULL) != 0);
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "ii", &i, &j) == 0);
+  EXPECT(i == 42);
+  EXPECT(j == -3);
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "if", 7, 1.234) == 0);
+  float f;
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "if", &i, &f) == 0);
+  EXPECT(i == 7);
+  EXPECT(f == 1.234f);
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "si", "text", 1) == 0);
+  char s[16];
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "si", &s, &i) == 0);
+  EXPECT(i == 1);
+  EXPECT(!strcmp("text", s));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*",
+        "mb", 0x00804860, 3, "text") == 0);
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "mb", &i, &j, s) == 0);
+  EXPECT(i == 0x00804860);
+  EXPECT(j == 3);
+  EXPECT(!strncmp("text", s, j));
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
   TEST(test_pack_errors);
   TEST(test_pack_capacity);
@@ -282,4 +317,5 @@ int main(int argc, char **argv) {
   TEST(test_pack_two_args);
   TEST(test_unpack_match);
   TEST(test_unpack_one_arg);
+  TEST(test_unpack_two_args);
 }
