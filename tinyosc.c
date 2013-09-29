@@ -16,10 +16,12 @@ static uint64_t htonll(uint64_t m) {
 
 #define ntohll(x) htonll(x)
 
-static void osc_align(char **p, int *n) {
-  int d = *n & 0x03;
+static void osc_advance(char **p, int d, int *n) {
   *p += d;
   *n -= d;
+  int r = *n & 0x03;
+  *p += r;
+  *n -= r;
 }
 
 static int osc_append_int(char **p, int32_t i, int *n) {
@@ -33,9 +35,7 @@ static int osc_append_int(char **p, int32_t i, int *n) {
 static int osc_append_bytes(char **p, int s, const char *b, int *n) {
   if (*n < s) return -1;
   memcpy(*p, b, s);
-  *p += s;
-  *n -= s;
-  osc_align(p, n);
+  osc_advance(p, s, n);
   return 0;
 }
 
@@ -101,15 +101,12 @@ int osc_unpack_message(const osc_packet *packet,
   int n = strlen(p) + 1;
   if (nleft < n) return -1;
   if (!pattern_matches(p, address)) return -1;
-  p += n;
-  nleft -= n;
-  osc_align(&p, &nleft);
+  osc_advance(&p, n, &nleft);
   n = strlen(types) + 2;
   if (nleft < n) return -1;
+  if (*p != ',') return -1;
   if (strcmp(p + 1, types)) return -1;
-  p += n;
-  nleft -= n;
-  osc_align(&p, &nleft);
+  osc_advance(&p, n, &nleft);
   const char *t;
   int32_t *ip;
   float *fp;
@@ -133,9 +130,7 @@ int osc_unpack_message(const osc_packet *packet,
         if (nleft < n) return -1;
         sp = va_arg(ap, char *);
         strcpy(sp, p);
-        p += n;
-        nleft -= n;
-        osc_align(&p, &nleft);
+        osc_advance(&p, n, &nleft);
         break;
       case 'b':  // OSC-blob
         ip = va_arg(ap, int32_t *);
@@ -146,9 +141,7 @@ int osc_unpack_message(const osc_packet *packet,
         vp = va_arg(ap, void *);
         if (nleft < *ip) return -1;
         memcpy(vp, p, *ip);
-        p += *ip;
-        nleft -= *ip;
-        osc_align(&p, &nleft);
+        osc_advance(&p, *ip, &nleft);
         break;
       default:
         return -1;  // Unknown or unsupported data type.
