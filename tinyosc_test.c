@@ -8,24 +8,70 @@ static int test_capacity() {
   char data[CAPACITY];
   osc_packet packet;
   packet.data = data;
-  EXPECT(osc_pack_message(&packet, 0, "/foo", "") != 0);
+  EXPECT(osc_pack_message(&packet, 0, "/ab", "") != 0);
+  EXPECT(osc_pack_message(&packet, 4, "/ab", "") != 0);
+  EXPECT(osc_pack_message(&packet, 8, "/ab", "") == 0);
+  EXPECT(osc_pack_message(&packet, 4, "/foo", "") != 0);
   EXPECT(osc_pack_message(&packet, 8, "/foo", "") != 0);
-  EXPECT(osc_pack_message(&packet, 11, "/foo", "") != 0);
   EXPECT(osc_pack_message(&packet, 12, "/foo", "") == 0);
-  EXPECT(packet.size == 12);
-  EXPECT(osc_pack_message(&packet, 15, "/foo", "i", 0) != 0);
+  EXPECT(osc_pack_message(&packet, 12, "/foo", "i", 0) != 0);
   EXPECT(osc_pack_message(&packet, 16, "/foo", "i", 0) == 0);
-  EXPECT(packet.size == 16);
+  EXPECT(osc_pack_message(&packet, 12, "/foo", "f", 1.5) != 0);
+  EXPECT(osc_pack_message(&packet, 16, "/foo", "f", 1.5) == 0);
+  EXPECT(osc_pack_message(&packet, 12, "/foo", "s", "abc") != 0);
+  EXPECT(osc_pack_message(&packet, 16, "/foo", "s", "abc") == 0);
+  EXPECT(osc_pack_message(&packet, 16, "/foo", "s", "abcd") != 0);
+  EXPECT(osc_pack_message(&packet, 20, "/foo", "s", "abcd") == 0);
+  EXPECT(osc_pack_message(&packet, 20, "/foo", "b", 5, "abcde") != 0);
+  EXPECT(osc_pack_message(&packet, 24, "/foo", "b", 5, "abcde") == 0);
+  EXPECT(osc_pack_message(&packet, 16, "/foo", "ii", 0, 0) != 0);
+  EXPECT(osc_pack_message(&packet, 20, "/foo", "ii", 0, 0) == 0);
+  EXPECT(osc_pack_message(&packet, 16, "/foo", "fi", 1.5, 0) != 0);
+  EXPECT(osc_pack_message(&packet, 20, "/foo", "fi", 1.5, 0) == 0);
+  EXPECT(osc_pack_message(&packet, 16, "/foo", "si", "abc", 0) != 0);
+  EXPECT(osc_pack_message(&packet, 20, "/foo", "si", "abc", 0) == 0);
+  EXPECT(osc_pack_message(&packet, 24, "/foo", "bi", 5, "abcde", 0) != 0);
+  EXPECT(osc_pack_message(&packet, 28, "/foo", "bi", 5, "abcde", 0) == 0);
   return 0;
 }
 
-static int test_no_args() {
+static int test_pack_no_args() {
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "", "") != 0);
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/", "") == 0);
+  EXPECT(osc_pack_message(&packet, CAPACITY, "#", "") != 0);
+  EXPECT(osc_pack_message(&packet, CAPACITY, "#foo", "") != 0);
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/ab", "") == 0);
+  EXPECT(packet.size == 8);
+  char ref0[] = { '/', 'a', 'b', '\0', ',', '\0', '\0', '\0' };
+  EXPECT(!strncmp(ref0, packet.data, packet.size));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/bar", "") == 0);
+  EXPECT(packet.size == 16);
+  char ref1[] = {
+    '/', 'f', 'o', 'o', '/', 'b', 'a', 'r', '\0', '\0', '\0', '\0',
+    ',', '\0', '\0', '\0'
+  };
+  EXPECT(!strncmp(ref1, packet.data, packet.size));
+  return 0;
+}
+
+static int test_pack_one_args() {
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
   return 0;
 }
 
 int main(int argc, char **argv) {
   TEST(test_capacity);
-  TEST(test_no_args);
+  TEST(test_pack_no_args);
+  TEST(test_pack_one_args);
 }
 
 /*

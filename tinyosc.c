@@ -70,7 +70,9 @@ int osc_pack_message(osc_packet *packet, int capacity,
   if (capacity & 0x03) return -1;
   int nleft = capacity;
   char *p = packet->data;
-  if (osc_append_bytes(&p, strlen(address) + 1, address, &nleft)) return -1;
+  int addrlen = strlen(address);
+  if (addrlen < 1 || address[0] != '/') return -1;
+  if (osc_append_bytes(&p, addrlen + 1, address, &nleft)) return -1;
   if (osc_append_char(&p, ',', &nleft)) return -1;
   if (osc_append_bytes(&p, strlen(types) + 1, types, &nleft)) return -1;
   int32_t iv;
@@ -120,6 +122,7 @@ int osc_unpack_message(const osc_packet *packet,
   if (nleft < n) return -1;
   if (!pattern_matches(p, address)) return -1;
   osc_advance(&p, n, &nleft);
+  if (nleft == 0) return 0;  // Support missing type tag string.
   n = strlen(types) + 2;
   if (nleft < n) return -1;
   if (*p != ',') return -1;
@@ -159,7 +162,7 @@ int osc_unpack_message(const osc_packet *packet,
   return 0;
 }
 
-int osc_is_bundle(osc_packet *packet) {
+int osc_is_bundle(const osc_packet *packet) {
   return !strcmp(packet->data, "#bundle");
 }
 
@@ -173,7 +176,7 @@ int osc_make_bundle(osc_packet *bundle, int capacity, uint64_t time) {
 }
 
 int osc_add_packet_to_bundle(
-    osc_packet *bundle, int capacity, osc_packet *packet) {
+    osc_packet *bundle, int capacity, const osc_packet *packet) {
   if (!osc_is_bundle(bundle)) return -1;
   int bs = bundle->size;
   int ps = packet->size;
@@ -187,14 +190,14 @@ int osc_add_packet_to_bundle(
   return 0;
 }
 
-int osc_time_from_bundle(osc_packet *bundle, uint64_t *time) {
+int osc_time_from_bundle(const osc_packet *bundle, uint64_t *time) {
   if (!osc_is_bundle(bundle)) return -1;
   *time = ntohll(*(uint64_t *) (bundle->data + 8));
   return 0;
 }
 
 int osc_next_packet_from_bundle(
-    osc_packet *bundle, osc_packet *current) {
+    const osc_packet *bundle, osc_packet *current) {
   if (!osc_is_bundle(bundle)) return -1;
   int bs = bundle->size;
   char *p = bundle->data;
