@@ -20,8 +20,11 @@ static void osc_advance(char **p, int d, int *n) {
   *p += d;
   *n -= d;
   int r = *n & 0x03;
-  *p += r;
-  *n -= r;
+  if (r > 0) {
+    memset(*p, 0, r);
+    *p += r;
+    *n -= r;
+  }
 }
 
 static int osc_append_int(char **p, int32_t i, int *n) {

@@ -12,8 +12,10 @@ static int test_capacity() {
   EXPECT(osc_pack_message(&packet, 8, "/foo", "") != 0);
   EXPECT(osc_pack_message(&packet, 11, "/foo", "") != 0);
   EXPECT(osc_pack_message(&packet, 12, "/foo", "") == 0);
+  EXPECT(packet.size == 12);
   EXPECT(osc_pack_message(&packet, 15, "/foo", "i", 0) != 0);
   EXPECT(osc_pack_message(&packet, 16, "/foo", "i", 0) == 0);
+  EXPECT(packet.size == 16);
   return 0;
 }
 
@@ -21,13 +23,12 @@ static int test_no_args() {
   return 0;
 }
 
-/*
 int main(int argc, char **argv) {
   TEST(test_capacity);
   TEST(test_no_args);
 }
-*/
 
+/*
 int main(int argc, char **argv) {
   int N = 256;
   osc_packet packet;
@@ -45,3 +46,4 @@ int main(int argc, char **argv) {
   free(packet.data);
   return 0;
 }
+*/
