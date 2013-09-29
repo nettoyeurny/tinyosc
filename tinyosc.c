@@ -122,7 +122,7 @@ int osc_unpack_message(const osc_packet *packet,
   if (nleft < n) return -1;
   if (!pattern_matches(p, address)) return -1;
   osc_advance(&p, n, &nleft);
-  if (nleft == 0) return 0;  // Support missing type tag string.
+  if (nleft == 0) return types[0] ? -1 : 0;  // Support missing type tag string.
   n = strlen(types) + 2;
   if (nleft < n) return -1;
   if (*p != ',') return -1;

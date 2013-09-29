@@ -210,8 +210,15 @@ static int test_pack_two_args() {
 }
 
 static int test_unpack_match() {
-  char data[CAPACITY];
   osc_packet packet;
+  packet.size = 4;
+  packet.data = "/xy";
+
+  EXPECT(osc_unpack_message(&packet, "/xyz", "") != 0);
+  EXPECT(osc_unpack_message(&packet, "/xy", "i", NULL) != 0);
+  EXPECT(osc_unpack_message(&packet, "/xy", "") == 0);
+
+  char data[CAPACITY];
   packet.data = data;
 
   EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*/bar", "") == 0);
