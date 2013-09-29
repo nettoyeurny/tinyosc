@@ -119,7 +119,8 @@ int osc_unpack_message(const osc_packet *packet,
   if (nleft & 0x03) return -1;
   char *p = packet->data;
   int n = strlen(p) + 1;
-  if (nleft < n) return -1;
+  if (nleft < n) return -1;  // Seriously malformed packet.
+  if (osc_is_bundle(packet)) return -1;
   if (!pattern_matches(p, address)) return -1;
   osc_advance(&p, n, &nleft);
   if (nleft == 0) return types[0] ? -1 : 0;  // Support missing type tag string.
