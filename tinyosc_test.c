@@ -137,13 +137,29 @@ static int test_pack_one_arg() {
   };
   EXPECT(buffers_match(ref4, packet.data, packet.size));
 
-  EXPECT(osc_pack_message(&packet, CAPACITY, "/ab", "s", "abcdef") == 0);
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/ab", "s", "abcdefg") == 0);
   EXPECT(packet.size == 16);
   char ref5[] = {
     '/', 'a', 'b', 0, ',', 's', 0, 0,
-    'a', 'b', 'c', 'd', 'e', 'f', 0, 0
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 0
   };
   EXPECT(buffers_match(ref5, packet.data, packet.size));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/ab", "b", 0, NULL) == 0);
+  EXPECT(packet.size == 12);
+  char ref6[] = {
+    '/', 'a', 'b', 0, ',', 'b', 0, 0,
+    0, 0, 0, 0
+  };
+  EXPECT(buffers_match(ref6, packet.data, packet.size));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/ab", "b", 2, "abcdef") == 0);
+  EXPECT(packet.size == 16);
+  char ref7[] = {
+    '/', 'a', 'b', 0, ',', 'b', 0, 0,
+    0, 0, 0, 2, 'a', 'b', 0, 0
+  };
+  EXPECT(buffers_match(ref7, packet.data, packet.size));
 
   return 0;
 }
