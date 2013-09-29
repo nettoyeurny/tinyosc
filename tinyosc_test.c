@@ -1,4 +1,4 @@
-#include "myosc.h"
+#include "tinyosc.h"
 
 #include "test_utils.h"
 

@@ -1,6 +1,6 @@
 // TODO: Error checking and tests.
 
-#include "myosc.h"
+#include "tinyosc.h"
 #include "pattern.h"
 
 #include <stdio.h>
