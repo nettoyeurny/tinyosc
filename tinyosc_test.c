@@ -209,10 +209,62 @@ static int test_pack_two_args() {
   return 0;
 }
 
+static int test_unpack_match() {
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*/bar", "") == 0);
+
+  // Non-matching addresses.
+  EXPECT(osc_unpack_message(&packet, "/foo", "") != 0);
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "") != 0);
+  EXPECT(osc_unpack_message(&packet, "/fooo/x/bar", "") != 0);
+  EXPECT(osc_unpack_message(&packet, "/foo/x/baz", "") != 0);
+
+  // Matching addresses.
+  EXPECT(osc_unpack_message(&packet, "/foo//bar", "") == 0);
+  EXPECT(osc_unpack_message(&packet, "/foo/x/bar", "") == 0);
+
+  return 0;
+}
+
+static int test_unpack_one_arg() {
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "i", 42) == 0);
+  int i;
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "f", NULL) != 0);
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "i", &i) == 0);
+  EXPECT(i == 42);
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "f", -0.5) == 0);
+  float f;
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "f", &f) == 0);
+  EXPECT(f == -0.5);
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "s", "bla") == 0);
+  char s[16];
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "s", s) == 0);
+  EXPECT(!strcmp("bla", s));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "b", 2, "xy") == 0);
+  int n;
+  EXPECT(osc_unpack_message(&packet, "/foo/bar", "b", &n, s) == 0);
+  EXPECT(n == 2);
+  EXPECT(buffers_match("xy", s, n));
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
   TEST(test_pack_errors);
   TEST(test_pack_capacity);
   TEST(test_pack_no_args);
   TEST(test_pack_one_arg);
   TEST(test_pack_two_args);
+  TEST(test_unpack_match);
+  TEST(test_unpack_one_arg);
 }
