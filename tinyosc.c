@@ -72,6 +72,7 @@ int osc_pack_message(osc_packet *packet, int capacity,
   for (t = types; *t; ++t) {
     switch (*t) {
       case 'i':  // int32
+      case 'm':  // 4-byte MIDI message
         iv = va_arg(ap, int32_t);
         if (osc_append_int(&p, iv, &nleft)) return -1;
         break;
@@ -122,6 +123,7 @@ int osc_unpack_message(const osc_packet *packet,
   for (t = types; *t; ++t) {
     switch (*t) {
       case 'i':  // int32
+      case 'm':  // 4-byte MIDI message.
       case 'f':  // float32
         ip = va_arg(ap, int32_t *);
         *ip = ntohl(*(int32_t *)p);
