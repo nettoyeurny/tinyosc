@@ -32,9 +32,24 @@ static int osc_append_int(char **p, int32_t i, int *n) {
   return 0;
 }
 
+static int osc_get_int(char **p, int32_t *ip, int *n) {
+  if (*n < 4) return -1;
+  *ip = ntohl(*(int32_t *)*p);
+  *p += 4;
+  *n -= 4;
+  return 0;
+}
+
 static int osc_append_bytes(char **p, int s, const char *b, int *n) {
   if (*n < s) return -1;
   memcpy(*p, b, s);
+  osc_advance(p, s, n);
+  return 0;
+}
+
+static int osc_get_bytes(char **p, int s, char *b, int *n) {
+  if (*n < s) return -1;
+  memcpy(b, *p, s);
   osc_advance(p, s, n);
   return 0;
 }
@@ -111,7 +126,6 @@ int osc_unpack_message(const osc_packet *packet,
   int32_t *ip;
   float *fp;
   char *sp;
-  void *vp;
   va_list ap;
   va_start(ap, types);
   for (t = types; *t; ++t) {
@@ -119,29 +133,19 @@ int osc_unpack_message(const osc_packet *packet,
       case 'i':  // int32
       case 'm':  // 4-byte MIDI message.
       case 'f':  // float32
-        if (nleft < 4) return -1;
         ip = va_arg(ap, int32_t *);
-        *ip = ntohl(*(int32_t *)p);
-        p += 4;
-        nleft -= 4;
+        if (osc_get_int(&p, ip, &nleft)) return -1;
         break;
       case 's':  // OSC-string
-        n = strlen(p) + 1;
-        if (nleft < n) return -1;
         sp = va_arg(ap, char *);
-        strcpy(sp, p);
-        osc_advance(&p, n, &nleft);
+        n = strlen(p) + 1;
+        if (osc_get_bytes(&p, n, sp, &nleft)) return -1;
         break;
       case 'b':  // OSC-blob
         ip = va_arg(ap, int32_t *);
-        if (nleft < 4) return -1;
-        *ip = ntohl(*(int32_t *)p);
-        p += 4;
-        nleft -= 4;
-        vp = va_arg(ap, void *);
-        if (nleft < *ip) return -1;
-        memcpy(vp, p, *ip);
-        osc_advance(&p, *ip, &nleft);
+        sp = va_arg(ap, void *);
+        if (osc_get_int(&p, ip, &nleft)) return -1;
+        if (osc_get_bytes(&p, *ip, sp, &nleft)) return -1;
         break;
       default:
         return -1;  // Unknown or unsupported data type.
