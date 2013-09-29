@@ -5,7 +5,7 @@ All Rights Reserved.
 Written by Matt Wright, The Center for New Music and Audio Technologies,
 University of California, Berkeley.
 
-Revisions by Peter Brinkmann <peter.brinkmann@gmail.com>
+Revisions by Peter Brinkmann <peter.brinkmann@gmail.com>.
 
 Permission to use, copy, modify, distribute, and distribute modified versions
 of this software and its documentation without fee and without a signed
@@ -27,14 +27,6 @@ MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 The OpenSound Control WWW page is 
     http://www.cnmat.berkeley.edu/OpenSoundControl
 */
-
-
-
-/*
-    OSC-pattern-match.c
-    Matt Wright, 3/16/98
-    Adapted from oscpattern.c, by Matt Wright and Amar Chaudhury
- */
 
 #include "pattern.h"
 
