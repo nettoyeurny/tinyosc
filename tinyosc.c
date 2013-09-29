@@ -89,6 +89,8 @@ int osc_pack_message(osc_packet *packet, int capacity,
         vv = va_arg(ap, const void *);
         if (osc_append_blob(&p, iv, vv, &nleft)) return -1;
         break;
+      default:
+        return -2;  // Unknown or unsupported data type.
     }
   }
   va_end(ap);
@@ -143,10 +145,12 @@ int osc_unpack_message(const osc_packet *packet,
         nleft -= 4 + *ip;
         osc_align(&p, &nleft);
         break;
+      default:
+        return -3;  // Unknown or unsupported data type.
     }
   }
   va_end(ap);
-  if (nleft != 0) return -3;
+  if (nleft != 0) return -4;
   return 0;
 }
 

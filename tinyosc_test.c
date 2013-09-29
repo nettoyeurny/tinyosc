@@ -18,7 +18,6 @@ static int test_capacity() {
 }
 
 static int test_no_args() {
-  EXPECT(0 == 1 + 1);
   return 0;
 }
 
