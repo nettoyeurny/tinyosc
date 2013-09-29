@@ -1,3 +1,6 @@
+#ifndef __MYOSC_H__
+#define __MYOSC_H__
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -24,3 +27,4 @@ int osc_time_from_bundle(osc_packet *bundle, uint64_t *time);
 
 int osc_next_packet_from_bundle(osc_packet *bundle, osc_packet *current);
 
+#endif

@@ -1,5 +1,6 @@
 #ifndef __TEST_UTILS_H__
 #define __TEST_UTILS_H__
+
 #include <stdio.h>
 
 #define EXPECT(x) \
