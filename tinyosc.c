@@ -180,7 +180,9 @@ int osc_add_packet_to_bundle(
     osc_packet *bundle, int capacity, const osc_packet *packet) {
   if (!osc_is_bundle(bundle)) return -1;
   int bs = bundle->size;
+  if (bs & 0x03) return -2;
   int ps = packet->size;
+  if (ps & 0x03) return -2;
   if (capacity - bs < ps + 4) return -1;
   char *p = bundle->data;
   p += bs;
@@ -192,7 +194,9 @@ int osc_add_packet_to_bundle(
 }
 
 int osc_time_from_bundle(const osc_packet *bundle, uint64_t *time) {
-  if (!osc_is_bundle(bundle)) return -1;
+  if (!osc_is_bundle(bundle)) return -2;
+  if (bundle->size & 0x03) return -2;
+  if (bundle->size < 16) return -2;
   *time = ntohll(*(uint64_t *) (bundle->data + 8));
   return 0;
 }
@@ -201,10 +205,12 @@ int osc_next_packet_from_bundle(
     const osc_packet *bundle, osc_packet *current) {
   if (!osc_is_bundle(bundle)) return -1;
   int bs = bundle->size;
+  if (bs & 0x03) return -2;
   char *p = bundle->data;
   if (bs < 20) return -1;
   if (!current->data) {
     current->size = ntohl(*(int32_t *) (p + 16));
+    if (current->size & 0x03) return -2;
     current->data = p + 20;
     if ((current->data + current->size) - p > bs) return -2;
     return 0;
@@ -214,8 +220,8 @@ int osc_next_packet_from_bundle(
   q += ps;
   if ((q + 4) - p > bs) return -1;
   current->size = ntohl(*(int32_t *) q);
+  if (current->size & 0x03) return -2;
   current->data = q + 4;
   if ((current->data + current->size) - p > bs) return -2;
   return 0;
 }
-
