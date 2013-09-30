@@ -77,6 +77,12 @@ int osc_pack_message(osc_packet *packet, int capacity,
 //   String     's'    char*
 //   Blob       'b'    int32_t* (size of blob), char*
 //   MIDI       'm'    int32_t*
+//
+// Typical call pattern:
+//   float x, y;
+//   if (!osc_unpack_message(&packet, "/xy", "ff", &x, &y)) {
+//     // Handle coordinates from xy-pad.
+//   }
 int osc_unpack_message(const osc_packet *packet,
     const char *address, const char *types, ...);
 
@@ -111,6 +117,7 @@ int osc_time_from_bundle(const osc_packet *bundle, uint64_t *time);
 //     } else {
 //       // Handle packet.
 //     }
+//   }
 int osc_next_packet_from_bundle(const osc_packet *bundle, osc_packet *current);
 
 #endif
