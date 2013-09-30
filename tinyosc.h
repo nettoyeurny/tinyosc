@@ -20,10 +20,10 @@ int osc_is_bundle(const osc_packet *packet);
 
 int osc_make_bundle(osc_packet *bundle, int capacity, uint64_t time);
 
+int osc_time_from_bundle(const osc_packet *bundle, uint64_t *time);
+
 int osc_add_packet_to_bundle(
     osc_packet *bundle, int capacity, const osc_packet *packet);
-
-int osc_time_from_bundle(const osc_packet *bundle, uint64_t *time);
 
 int osc_next_packet_from_bundle(const osc_packet *bundle, osc_packet *current);
 

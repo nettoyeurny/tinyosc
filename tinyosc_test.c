@@ -309,13 +309,14 @@ static int test_unpack_two_args() {
   return 0;
 }
 
-static int test_make_bundle() {
+static int test_bundle_basics() {
   char data[CAPACITY];
   osc_packet packet;
   packet.data = data;
 
   EXPECT(osc_pack_message(&packet, CAPACITY, "/foo", "") == 0);
   EXPECT(!osc_is_bundle(&packet));
+  EXPECT(osc_time_from_bundle(&packet, NULL) != 0);
   EXPECT(osc_make_bundle(&packet, 4, 1) != 0);
   EXPECT(osc_make_bundle(&packet, 16, 0x0102030405060708) == 0);
   EXPECT(osc_is_bundle(&packet));
@@ -325,7 +326,28 @@ static int test_make_bundle() {
     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
   };
   EXPECT(buffers_match(ref, packet.data, packet.size));
+  int64_t time;
+  EXPECT(osc_time_from_bundle(&packet, &time) == 0);
+  EXPECT(time == 0x0102030405060708);
 
+  return 0;
+}
+
+static int test_add_to_bundle() {
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
+  EXPECT(0);
+  return 0;
+}
+
+static int test_get_from_bundle() {
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
+  EXPECT(0);
   return 0;
 }
 
@@ -338,5 +360,7 @@ int main(int argc, char **argv) {
   TEST(test_unpack_match);
   TEST(test_unpack_one_arg);
   TEST(test_unpack_two_args);
-  TEST(test_make_bundle);
+  TEST(test_bundle_basics);
+  TEST(test_add_to_bundle);
+  TEST(test_get_from_bundle);
 }
