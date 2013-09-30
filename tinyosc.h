@@ -14,6 +14,11 @@
  * under the License.
  */
 
+// A minimal but complete implementation of Open Sound Control, providing
+// serialization and deserialization of OSC messages but no networking support.
+// This implementation is real-time safe; in particular, it does not perform
+// any memory allocation.
+
 #ifndef __TINYOSC_H__
 #define __TINYOSC_H__
 
@@ -21,6 +26,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+// Data structure representing OSC packets.
 typedef struct {
   int32_t size;
   char *data;
