@@ -333,21 +333,68 @@ static int test_bundle_basics() {
   return 0;
 }
 
-static int test_add_to_bundle() {
-  char data[CAPACITY];
+static int test_bundle_add_and_get() {
+  char data0[CAPACITY];
+  osc_packet bundle;
+  bundle.data = data0;
+  char data1[CAPACITY];
   osc_packet packet;
-  packet.data = data;
+  packet.data = data1;
+  osc_packet extracted = { 0, NULL };
 
-  EXPECT(0);
-  return 0;
-}
+  EXPECT(osc_make_bundle(&bundle, CAPACITY, 0x0102030405060708) == 0);
+  EXPECT(osc_next_packet_from_bundle(&bundle, NULL) != 0);
+  EXPECT(extracted.data == NULL);
 
-static int test_get_from_bundle() {
-  char data[CAPACITY];
-  osc_packet packet;
-  packet.data = data;
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/ab", "i", 0x12345678) == 0);
+  EXPECT(osc_add_packet_to_bundle(&bundle, CAPACITY, &packet) == 0);
+  EXPECT(bundle.size == 32);
+  char ref0[] = {
+    '#', 'b', 'u', 'n', 'd', 'l', 'e', 0,
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+    0x00, 0x00, 0x00, 0x0c,
+    '/', 'a', 'b', 0, ',', 'i', 0, 0, 0x12, 0x34, 0x56, 0x78
+  };
+  EXPECT(buffers_match(ref0, bundle.data, bundle.size));
 
-  EXPECT(0);
+  extracted.size = 0;
+  extracted.data = NULL;
+  EXPECT(osc_next_packet_from_bundle(&bundle, &extracted) == 0);
+  EXPECT(extracted.size == 12);
+  char ref1[] = {
+    '/', 'a', 'b', 0, ',', 'i', 0, 0, 0x12, 0x34, 0x56, 0x78
+  };
+  EXPECT(buffers_match(ref1, extracted.data, extracted.size));
+  EXPECT(osc_next_packet_from_bundle(&bundle, &extracted) != 0);
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/abc", "f", 1.234) == 0);
+  EXPECT(osc_add_packet_to_bundle(&bundle, CAPACITY, &packet) == 0);
+  EXPECT(bundle.size == 52);
+  char ref2[] = {
+    '#', 'b', 'u', 'n', 'd', 'l', 'e', 0,
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+    0x00, 0x00, 0x00, 0x0c,
+    '/', 'a', 'b', 0, ',', 'i', 0, 0, 0x12, 0x34, 0x56, 0x78,
+    0x00, 0x00, 0x00, 0x10,
+    '/', 'a', 'b', 'c', 0, 0, 0, 0, ',', 'f', 0, 0, 0x3f, 0x9d, 0xf3, 0xb6
+  };
+  EXPECT(buffers_match(ref2, bundle.data, bundle.size));
+
+  extracted.size = 0;
+  extracted.data = NULL;
+  EXPECT(osc_next_packet_from_bundle(&bundle, &extracted) == 0);
+  EXPECT(extracted.size == 12);
+  EXPECT(buffers_match(ref1, extracted.data, extracted.size));
+
+  EXPECT(osc_next_packet_from_bundle(&bundle, &extracted) == 0);
+  EXPECT(packet.size == 16);
+  char ref3[] = {
+    '/', 'a', 'b', 'c', 0, 0, 0, 0, ',', 'f', 0, 0, 0x3f, 0x9d, 0xf3, 0xb6
+  };
+  EXPECT(buffers_match(ref3, extracted.data, extracted.size));
+
+  EXPECT(osc_next_packet_from_bundle(&bundle, &extracted) != 0);
+
   return 0;
 }
 
@@ -361,6 +408,5 @@ int main(int argc, char **argv) {
   TEST(test_unpack_one_arg);
   TEST(test_unpack_two_args);
   TEST(test_bundle_basics);
-  TEST(test_add_to_bundle);
-  TEST(test_get_from_bundle);
+  TEST(test_bundle_add_and_get);
 }

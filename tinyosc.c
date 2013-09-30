@@ -206,7 +206,7 @@ int osc_next_packet_from_bundle(
   if (!current->data) {
     current->size = ntohl(*(int32_t *) (p + 16));
     current->data = p + 20;
-    if ((current->data + current->size) - p > bs) return -1;
+    if ((current->data + current->size) - p > bs) return -2;
     return 0;
   }
   int ps = current->size;
@@ -215,7 +215,7 @@ int osc_next_packet_from_bundle(
   if ((q + 4) - p > bs) return -1;
   current->size = ntohl(*(int32_t *) q);
   current->data = q + 4;
-  if ((current->data + current->size) - p > bs) return -1;
+  if ((current->data + current->size) - p > bs) return -2;
   return 0;
 }
 
