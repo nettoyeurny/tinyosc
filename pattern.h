@@ -28,8 +28,8 @@ The OpenSound Control WWW page is
     http://www.cnmat.berkeley.edu/OpenSoundControl
 */
 
-#ifndef __PATTERN_H__
-#define __PATTERN_H__
+#ifndef __TINYOSC_PATTERN_H__
+#define __TINYOSC_PATTERN_H__
 
 int pattern_matches(const char *pattern, const char *test);
 
