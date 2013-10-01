@@ -45,7 +45,7 @@ typedef struct {
   char *data;
 } osc_packet;
 
-// Packs the given parameters into an OSC packet; returns 0 on success. The
+// Packs the given parameters into an OSC message; returns 0 on success. The
 // address string is an OSC address pattern, i.e., it can contain wild cards.
 // packet->data must point to a buffer whose capacity is at least the value of
 // the capacity parameter.
@@ -63,7 +63,7 @@ typedef struct {
 int osc_pack_message(osc_packet *packet, int capacity,
     const char *address, const char *types, ...);
 
-// Unpacks the given OSC packet if its address pattern matches the given
+// Unpacks the given OSC message if its address pattern matches the given
 // address and its types string matches the given types string; returns 0 on
 // success.
 //
@@ -77,6 +77,10 @@ int osc_pack_message(osc_packet *packet, int capacity,
 //   String     's'    char*
 //   Blob       'b'    int32_t* (size of blob), char*
 //   MIDI       'm'    int32_t*
+//
+// When extracting strings or blobs from an OSC message, make sure to pass in
+// a pointer to a sufficiently large char buffer. The size of the message
+// provides a quick a-priori upper bound on the required size of buffers.
 //
 // Typical call pattern:
 //   float x, y;
