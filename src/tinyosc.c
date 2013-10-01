@@ -83,7 +83,7 @@ static int osc_append_char(char **p, char c, int *n) {
 
 int osc_pack_message(osc_packet *packet, int capacity,
     const char *address, const char *types, ...) {
-  if (capacity & 0x03) return -1;
+  capacity = (capacity / 4) * 4;  // capacity is now a multipe of 4.
   int nleft = capacity;
   char *p = packet->data;
   int addrlen = strlen(address);

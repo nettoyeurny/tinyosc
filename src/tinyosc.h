@@ -32,7 +32,7 @@
 // Data structure representing OSC packets. The data field points to a buffer
 // that holds a serialized OSC packet. The size field indicates the size of the
 // serialized packet, _not_ the capacity of the buffer. API functions that need
-// to know the capacity of the buffer take a capacity parameter.
+// to know the capacity of the buffer take an additional capacity parameter.
 //
 // A note on byte order: The size field is in the host byte order, i.e., client
 // code can use it directly without having to convert it. Per OSC
