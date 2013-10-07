@@ -236,6 +236,9 @@ static int test_unpack_match() {
   EXPECT(osc_unpack_message(&packet, "/xy", "i", NULL) != 0);
   EXPECT(osc_unpack_message(&packet, "/xy", "") == 0);
 
+  packet.data = "/xyz";  // packet is now malformed (size is too small).
+  EXPECT(osc_unpack_message(&packet, "/xyz", "") != 0);
+
   char data[CAPACITY];
   packet.data = data;
 
