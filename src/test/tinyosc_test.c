@@ -324,6 +324,15 @@ static int test_unpack_two_args() {
   EXPECT(j == 3);
   EXPECT(!strncmp("text", s, j));
 
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "si", "cat", -7) == 0);
+  EXPECT(osc_unpack_message(&packet, "/xy", "si", s, &i) == 0);
+  EXPECT(!strcmp("cat", s));
+  EXPECT(i == -7);
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "si", "cats", -7) == 0);
+  EXPECT(osc_unpack_message(&packet, "/xy", "si", s, &i) == 0);
+  EXPECT(!strcmp("cats", s));
+  EXPECT(i == -7);
   return 0;
 }
 
@@ -416,6 +425,99 @@ static int test_bundle_add_and_get() {
   return 0;
 }
 
+static int test_message_to_string_no_args() {
+  char s[CAPACITY];
+  char data[CAPACITY];
+  osc_packet packet;
+
+  packet.size = 8;
+  packet.data = "/xyz";
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 4);
+  EXPECT(!strcmp(s, "/xyz"));
+  EXPECT(osc_message_to_string(s, 5, &packet) == 4);
+  EXPECT(!strcmp(s, "/xyz"));
+  EXPECT(osc_message_to_string(s, 4, &packet) == 4);
+  EXPECT(!strcmp(s, "/xy"));
+
+  packet.data = data;
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/abcd", "") == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 5);
+  EXPECT(!strcmp(s, "/abcd"));
+  EXPECT(osc_message_to_string(s, 6, &packet) == 5);
+  EXPECT(!strcmp(s, "/abcd"));
+  EXPECT(osc_message_to_string(s, 5, &packet) == 5);
+  EXPECT(!strcmp(s, "/abc"));
+
+  return 0;
+}
+
+static int test_message_to_string_one_arg() {
+  char s[CAPACITY];
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "i", -7) == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 8);
+  EXPECT(!strcmp(s, "/xy i:-7"));
+  EXPECT(osc_message_to_string(s, 9, &packet) == 8);
+  EXPECT(!strcmp(s, "/xy i:-7"));
+  EXPECT(osc_message_to_string(s, 8, &packet) == 8);
+  EXPECT(!strcmp(s, "/xy i:-"));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "f", 3.5) == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 14);
+  EXPECT(!strcmp(s, "/xy f:3.500000"));
+  EXPECT(osc_message_to_string(s, 15, &packet) == 14);
+  EXPECT(!strcmp(s, "/xy f:3.500000"));
+  EXPECT(osc_message_to_string(s, 14, &packet) == 14);
+  EXPECT(!strcmp(s, "/xy f:3.50000"));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "s", "mouse") == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 11);
+  EXPECT(!strcmp(s, "/xy s:mouse"));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "b", 3, "zzz") == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 7);
+  EXPECT(!strcmp(s, "/xy b:3"));
+
+  return 0;
+}
+
+static int test_message_to_string_two_args() {
+  char s[CAPACITY];
+  char data[CAPACITY];
+  osc_packet packet;
+  packet.data = data;
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "ii", 5, -7) == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 12);
+  EXPECT(!strcmp(s, "/xy i:5 i:-7"));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "fi", 2.5, -7) == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 19);
+  EXPECT(!strcmp(s, "/xy f:2.500000 i:-7"));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "mi", 0x11223344, -7) == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 19);
+  EXPECT(!strcmp(s, "/xy m:11223344 i:-7"));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "si", "cat", -7) == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 14);
+  EXPECT(!strcmp(s, "/xy s:cat i:-7"));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy", "si", "cats", -7) == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 15);
+  EXPECT(!strcmp(s, "/xy s:cats i:-7"));
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/xy",
+        "bi", 8, "01234567", -7) == 0);
+  EXPECT(osc_message_to_string(s, CAPACITY, &packet) == 12);
+  EXPECT(!strcmp(s, "/xy b:8 i:-7"));
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
   TEST(test_pack_errors);
   TEST(test_pack_capacity);
@@ -427,4 +529,7 @@ int main(int argc, char **argv) {
   TEST(test_unpack_two_args);
   TEST(test_bundle_basics);
   TEST(test_bundle_add_and_get);
+  TEST(test_message_to_string_no_args);
+  TEST(test_message_to_string_one_arg);
+  TEST(test_message_to_string_two_args);
 }

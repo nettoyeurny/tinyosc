@@ -119,9 +119,22 @@ int osc_time_from_bundle(const osc_packet *bundle, uint64_t *time);
 //     if (osc_is_bundle(&current)) {
 //       // Recursively unpack sub-bundle.
 //     } else {
-//       // Handle packet.
+//       // Handle message.
 //     }
 //   }
 int osc_next_packet_from_bundle(const osc_packet *bundle, osc_packet *current);
+
+// Computes a string representation of the given OSC message and writes the
+// result to the string s; mostly for testing and debugging. The capacity is
+// the maximum number of bytes in s to be used, including the terminating null
+// character.
+//
+// This function mimics the behavior of snprintf, i.e., the return value is the
+// number of characters that would have been written if the capacity had been
+// sufficiently large, or a negative error code if the OSC message is
+// malformed.
+//
+// Note that this function only accepts OSC _messages_, not bundles.
+int osc_message_to_string(char *s, int capacity, const osc_packet *message);
 
 #endif

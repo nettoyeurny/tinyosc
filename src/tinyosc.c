@@ -241,3 +241,60 @@ int osc_next_packet_from_bundle(
   if ((current->data + current->size) - p > bs) return -2;
   return 0;
 }
+
+int osc_message_to_string(char *s, int capacity, const osc_packet *message) {
+  if (message->size <= 0 || message->data[0] != '/') {
+    return -1;  // Not an OSC message.
+  }
+  int c = snprintf(s, capacity, "%s", message->data);
+  int n = c + 1;
+  if (message->size - n < 4) return c;
+  if (n & 0x03) {
+    n += 4 - (n & 0x03);
+  }
+  const char *types = message->data + n;
+  if (types[0] != ',') {
+    return -2;  // Malformed OSC message.
+  }
+  n += strlen(types) + 1;
+  int32_t v;
+  char *t;
+  for (t = types + 1; *t; ++t) {
+    if (n & 0x03) {
+      n += 4 - (n & 0x03);
+    }
+    if (message->size - n < 4) {
+      return -3;  // Malformed OSC payload.
+    }
+    switch (*t) {
+      case 'i':
+        v = ntohl(*(int32_t *)(message->data + n));
+        c += snprintf(s + c, capacity - c, " i:%d", v);
+        n += 4;
+        break;
+      case 'm':
+        v = ntohl(*(int32_t *)(message->data + n));
+        c += snprintf(s + c, capacity - c, " m:%x", v);
+        n += 4;
+        break;
+      case 'f':
+        v = ntohl(*(int32_t *)(message->data + n));
+        c += snprintf(s + c, capacity - c, " f:%f", *(float *)&v);
+        n += 4;
+        break;
+      case 's':
+        v = strlen(message->data + n) + 1;
+        c += snprintf(s + c, capacity - c, " s:%s", message->data + n);
+        n += v;
+        break;
+      case 'b':
+        v = ntohl(*(int32_t *)(message->data + n));
+        c += snprintf(s + c, capacity - c, " b:%d", v);
+        n += 4 + v;
+        break;
+      default:
+        return -4;  // Unknown type.
+    }
+  }
+  return c;
+}
