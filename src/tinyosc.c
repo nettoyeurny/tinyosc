@@ -144,7 +144,7 @@ int osc_unpack_message(const osc_packet *packet,
   n = strnlen(types, nleft) + 2;
   if (nleft < n) return -1;
   if (*p != ',') return -1;
-  if (strcmp(p + 1, types)) return -1;
+  if (strncmp(p + 1, types, n - 1)) return -1;
   osc_advance(&p, n, &nleft);
   const char *t;
   int32_t *ip;
@@ -181,7 +181,7 @@ int osc_unpack_message(const osc_packet *packet,
 }
 
 int osc_is_bundle(const osc_packet *packet) {
-  return !strcmp(packet->data, "#bundle");
+  return !strncmp(packet->data, "#bundle", packet->size);
 }
 
 int osc_make_bundle(osc_packet *bundle, int capacity, uint64_t time) {
@@ -259,7 +259,7 @@ int osc_message_to_string(char *s, int capacity, const osc_packet *message) {
   }
   n += strnlen(types, capacity - n) + 1;
   int32_t v;
-  char *t;
+  const char *t;
   for (t = types + 1; *t; ++t) {
     if (n & 0x03) {
       n += 4 - (n & 0x03);
