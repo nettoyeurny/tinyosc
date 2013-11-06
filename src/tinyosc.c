@@ -17,6 +17,7 @@
 #include "tinyosc.h"
 #include "pattern.h"
 
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
