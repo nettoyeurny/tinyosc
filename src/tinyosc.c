@@ -135,16 +135,16 @@ int osc_unpack_message(const osc_packet *packet,
   int nleft = packet->size;
   if (nleft & 0x03) return -1;
   char *p = packet->data;
-  int n = strlen(p) + 1;
+  int n = strnlen(p, nleft) + 1;
   if (nleft < n) return -1;  // Seriously malformed packet.
   if (osc_is_bundle(packet)) return -1;
   if (!pattern_matches(p, address)) return -1;
   osc_advance(&p, n, &nleft);
   if (nleft == 0) return types[0] ? -1 : 0;  // Support missing type tag string.
-  n = strlen(types) + 2;
+  n = strnlen(types, nleft) + 2;
   if (nleft < n) return -1;
   if (*p != ',') return -1;
-  if (strcmp(p + 1, types)) return -1;
+  if (strncmp(p + 1, types, n - 1)) return -1;
   osc_advance(&p, n, &nleft);
   const char *t;
   int32_t *ip;
@@ -162,7 +162,7 @@ int osc_unpack_message(const osc_packet *packet,
         break;
       case 's':  // OSC-string
         sp = va_arg(ap, char *);
-        n = strlen(p) + 1;
+        n = strnlen(p, nleft) + 1;
         if (osc_get_bytes(&p, n, sp, &nleft)) return -1;
         break;
       case 'b':  // OSC-blob
@@ -181,7 +181,7 @@ int osc_unpack_message(const osc_packet *packet,
 }
 
 int osc_is_bundle(const osc_packet *packet) {
-  return !strcmp(packet->data, "#bundle");
+  return !strncmp(packet->data, "#bundle", packet->size);
 }
 
 int osc_make_bundle(osc_packet *bundle, int capacity, uint64_t time) {
@@ -257,9 +257,9 @@ int osc_message_to_string(char *s, int capacity, const osc_packet *message) {
   if (types[0] != ',') {
     return -2;  // Malformed OSC message.
   }
-  n += strlen(types) + 1;
+  n += strnlen(types, capacity - n) + 1;
   int32_t v;
-  char *t;
+  const char *t;
   for (t = types + 1; *t; ++t) {
     if (n & 0x03) {
       n += 4 - (n & 0x03);
@@ -284,7 +284,7 @@ int osc_message_to_string(char *s, int capacity, const osc_packet *message) {
         n += 4;
         break;
       case 's':
-        v = strlen(message->data + n) + 1;
+        v = strnlen(message->data + n, capacity - c) + 1;
         c += snprintf(s + c, capacity - c, " s:%s", message->data + n);
         n += v;
         break;
