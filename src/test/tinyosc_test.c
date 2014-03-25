@@ -1,12 +1,12 @@
 /*
  * Copyright 2013 Google Inc. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
  * of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -48,7 +48,7 @@ static int test_pack_errors() {
   EXPECT(osc_pack_message(&packet, CAPACITY, "#", "") != 0);
   EXPECT(osc_pack_message(&packet, CAPACITY, "#foo", "") != 0);
   EXPECT(osc_pack_message(&packet, CAPACITY, "/foo", "_") != 0);
-  
+
   return 0;
 }
 
@@ -274,10 +274,14 @@ static int test_unpack_one_arg() {
   EXPECT(osc_unpack_message(&packet, "/foo/bar", "i", &i) == 0);
   EXPECT(i == 42);
 
-  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "f", -0.5) == 0);
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/1/rotaryA", "f", 0.1f) == 0);
   float f;
+  EXPECT(osc_unpack_message(&packet, "/1/rotaryA", "f", &f) == 0);
+  EXPECT(f == 0.1f);
+
+  EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "f", -0.5f) == 0);
   EXPECT(osc_unpack_message(&packet, "/foo/bar", "f", &f) == 0);
-  EXPECT(f == -0.5);
+  EXPECT(f == -0.5f);
 
   EXPECT(osc_pack_message(&packet, CAPACITY, "/foo/*", "s", "") == 0);
   char s[16];
