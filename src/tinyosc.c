@@ -33,12 +33,14 @@ static uint64_t htonll(uint64_t m) {
 
 #define ntohll(x) htonll(x)
 
-static void osc_advance(char **p, int d, int *n) {
+static void osc_advance(char **p, int d, int *n, int clear) {
   *p += d;
   *n -= d;
   int r = *n & 0x03;
   if (r > 0) {
-    memset(*p, 0, r);
+    if (clear) {
+      memset(*p, 0, r);
+    }
     *p += r;
     *n -= r;
   }
@@ -63,14 +65,14 @@ static int osc_get_int(char **p, int32_t *ip, int *n) {
 static int osc_append_bytes(char **p, int s, const char *b, int *n) {
   if (*n < s) return -1;
   memcpy(*p, b, s);
-  osc_advance(p, s, n);
+  osc_advance(p, s, n, 1);
   return 0;
 }
 
 static int osc_get_bytes(char **p, int s, char *b, int *n) {
   if (*n < s) return -1;
   memcpy(b, *p, s);
-  osc_advance(p, s, n);
+  osc_advance(p, s, n, 0);
   return 0;
 }
 
@@ -139,13 +141,13 @@ int osc_unpack_message(const osc_packet *packet,
   if (nleft < n) return -1;  // Seriously malformed packet.
   if (osc_is_bundle(packet)) return -1;
   if (!pattern_matches(p, address)) return -1;
-  osc_advance(&p, n, &nleft);
+  osc_advance(&p, n, &nleft, 0);
   if (nleft == 0) return types[0] ? -1 : 0;  // Support missing type tag string.
   n = strnlen(types, nleft) + 2;
   if (nleft < n) return -1;
   if (*p != ',') return -1;
   if (strncmp(p + 1, types, n - 1)) return -1;
-  osc_advance(&p, n, &nleft);
+  osc_advance(&p, n, &nleft, 0);
   const char *t;
   int32_t *ip;
   float *fp;
