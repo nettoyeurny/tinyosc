@@ -543,4 +543,5 @@ int main(int argc, char **argv) {
   TEST(test_message_to_string_no_args);
   TEST(test_message_to_string_one_arg);
   TEST(test_message_to_string_two_args);
+  return 0;
 }
